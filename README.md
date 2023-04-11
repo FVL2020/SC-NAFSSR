@@ -1,6 +1,4 @@
 # SC-NAFSSR
-<<<<<<< HEAD
-
 Official PyTorch implement for SC-NAFSSR (Perceptual-Oriented Stereo Image Super-Resolution Using Stereo Consistency Guided NAFSSR)
 
 ## Requirements
@@ -31,6 +29,3 @@ Modify the test set path and pre-training model path in `NAFSSR.yml`.
 ```
 sh test.sh
 ```
-
-
->>>>>>> 1884bc8 (init)
