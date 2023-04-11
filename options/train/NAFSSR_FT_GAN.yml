@@ -1,0 +1,158 @@
+# ------------------------------------------------------------------------
+# Copyright (c) 2022 megvii-model. All Rights Reserved.
+# ------------------------------------------------------------------------
+# Modified from BasicSR (https://github.com/xinntao/BasicSR)
+# Copyright 2018-2020 BasicSR Authors
+# ------------------------------------------------------------------------
+# general settings
+name: NAFNetSR-L_x4_FT_GAN
+model_type: ImageRestorationGANModel
+scale: 4
+num_gpu: 4
+manual_seed: 10
+
+datasets:
+  train:
+    name: Flickr1024-sr-train
+    type: PairedImageSRLRDataset
+    dataroot_gt: /data/ntire/Flickr1024/train/HR
+    dataroot_lq: /data/ntire/Flickr1024/train/LR_x4
+    io_backend:
+      type: disk
+
+    gt_size_h: 120
+    gt_size_w: 360
+    use_hflip: true
+    use_vflip: true
+    use_rot: false
+    flip_RGB: true
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 4
+    batch_size_per_gpu: 2
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+  val:
+    name: Flickr1024-sr-test
+    type: PairedImageSRLRDataset
+    dataroot_gt: /data/ntire/Flickr1024/val/HR
+    dataroot_lq: /data/ntire/Flickr1024/val/LR_x4
+    io_backend:
+      type: disk
+
+# network structures
+network_g:
+  type: NAFSSRsc
+  up_scale: 4
+  width: 128
+  num_blks: 128
+  drop_path_rate: 0.3
+  train_size: [1, 6, 30, 90]
+  drop_out_rate: 0.
+  
+network_d:
+  type: SCUNetDiscriminatorSN
+  num_in_ch: 6
+  num_feat: 64
+  skip_connection: True
+
+# path
+path:
+  pretrain_network_g: experiments/NAFNetSR-L_x4_FT/models/net_g_latest.pth
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: AdamW
+    lr: !!float 5e-4
+    weight_decay: !!float 0
+    betas: [0.9, 0.9]
+  optim_d:
+    type: AdamW
+    lr: !!float 5e-4
+    weight_decay: !!float 0
+    betas: [0.9, 0.9]
+
+  scheduler:
+    type: TrueCosineAnnealingLR
+    T_max: 100000
+    eta_min: !!float 1e-7
+
+  total_iter: 100000
+  warmup_iter: -1 # no warm up
+  mixup: false
+
+  # losses
+  pixel_opt:
+    type: HuberLoss
+    loss_weight: 1.0
+    reduction: mean
+  # perceptual loss (content and style losses)
+  perceptual_opt:
+    # type: LPIPSLoss
+    # loss_weight: 1.0
+    type: PLLoss
+    layer_weights:
+      # before relu
+      'conv1_2': 0.1
+      'conv2_2': 0.1
+      'conv3_4': 1
+      'conv4_4': 1
+      'conv5_4': 1
+    vgg_type: vgg19
+    use_input_norm: true
+    perceptual_weight: !!float 1e-2
+    style_weight: 0
+    lpips_weight: 1.0
+    range_norm: false
+    criterion: l1
+  # gan loss
+  gan_opt:
+    type: GANLoss
+    gan_type: vanilla
+    real_label_val: 1.0
+    fake_label_val: 0.0
+    loss_weight: !!float 5e-3
+
+  net_d_iters: 1
+  net_d_init_iters: 0
+
+# validation settings
+val:
+  val_freq: !!float 5e3
+  save_img: false
+  trans_num: 1
+
+  max_minibatch: 1
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_skimage_ssim
+    # lpips:
+    #   type: calculate_lpips
+    # score:
+    #   type: calculate_score
+    #   fast: true
+
+# logging settings
+logger:
+  print_freq: 200
+  save_checkpoint_freq: !!float 1e4
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500

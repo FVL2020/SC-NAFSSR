@@ -1,0 +1,62 @@
+# ------------------------------------------------------------------------
+# Copyright (c) 2022 megvii-model. All Rights Reserved.
+# ------------------------------------------------------------------------
+# Modified from BasicSR (https://github.com/xinntao/BasicSR)
+# Copyright 2018-2020 BasicSR Authors
+# ------------------------------------------------------------------------
+# general settings
+name: NAFNetSR-L_x4
+model_type: ImageRestorationModel
+scale: 4
+num_gpu: 1
+manual_seed: 10
+
+datasets:
+  test0:
+    name: Flickr1024_val2022
+    type: PairedImageSRLRDataset
+    dataroot_gt: /data/ntire/Flickr1024/val/HR
+    dataroot_lq: /data/ntire/Flickr1024/val/LR_x4
+    io_backend:
+      type: disk
+
+# network structures
+network_g:
+  type: NAFSSRsc
+  up_scale: 4
+  width: 128
+  num_blks: 128
+  drop_path_rate: 0.3
+  train_size: [1, 6, 30, 90]
+  drop_out_rate: 0.
+
+# path
+path:
+  pretrain_network_g: experiments/NAFNetSR-L_x4_FT_GAN/models/net_g_latest.pth
+  strict_load_g: true
+  param_key: params_ema
+  resume_state: ~
+
+# validation settings
+val:
+  save_img: true
+  grids: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_skimage_ssim
+    lpips:
+      type: calculate_lpips
+    score:
+      type: calculate_score
+      fast: false
+
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
