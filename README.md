@@ -3,7 +3,7 @@ Official PyTorch implement for SC-NAFSSR (Perceptual-Oriented Stereo Image Super
 
 ## Requirements
 
-The codes are based on [BasicSR](https://github.com/xinntao/BasicSR).
+The codes are based on [BasicSR](https://github.com/xinntao/BasicSR) and [NAFSSR](https://github.com/megvii-research/NAFNet) .
 
 ```
 pip install -r requirements.txt
